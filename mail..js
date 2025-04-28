@@ -14,23 +14,16 @@ const date = dateMatch ? dateMatch[1].replace(/\./g, '-') : null;
 const acSummaryPattern = /\*?\s*A\/C\s*SUMMARY:?\s*\*?/i;
 
 const extractNumber = (fieldName) => {
-  // 定義欄位特定的正則表達式模式
   let fieldPattern;
   if (fieldName === 'Balance') {
-    // 確保僅匹配獨立的 Balance 欄位，而非 Previous Ledger Balance
     fieldPattern = `(?<!Previous\\s+Ledger\\s+)\\bBalance\\b`;
   } else if (fieldName === 'Equity') {
-    // 確保僅匹配獨立的 Equity 欄位，而非 Previous Equity
     fieldPattern = `(?<!Previous\\s+)\\bEquity\\b`;
   } else {
-    // 其他欄位使用預設模式，確保精確匹配
     fieldPattern = `\\b${fieldName}\\b`;
   }
 
-  // 定義通用的數值提取模式，支援負數、千分位分隔符和帶小數的數字
-  const numberPattern = `([-]?\\d{1,3}(?:[\\s,]?\\d{3})*(?:\\.\\d+)?)`;
-  
-  // 組合完整的正則表達式模式，從 A/C Summary 區塊開始匹配
+  const numberPattern = `([-]?\\d{1,3}(?:[\\s,]+\\d{3})*(?:\\.\\d+)?)`;
   const pattern = new RegExp(
     `${acSummaryPattern.source}[\\s\\S]*?${fieldPattern}\\s*:\\s*${numberPattern}`,
     'i'
@@ -38,18 +31,18 @@ const extractNumber = (fieldName) => {
 
   const match = text.match(pattern);
   if (match) {
-    // 移除數值中的空格和逗號，並轉為浮點數
     const value = match[1].replace(/[,\s]/g, '');
     return parseFloat(value);
+  } else {
+    console.log(`未能匹配欄位: ${fieldName}`);
+    return null;
   }
-  return null;
 };
 
-// 獨立處理 marginRequirements 欄位，確保小數點後數值被正確提取
+// 獨立處理 marginRequirements 欄位
 const extractMarginRequirements = () => {
-  // 使用 acSummaryPattern 錨定，並精確匹配 Margin Requirements
   const pattern = new RegExp(
-    acSummaryPattern.source + `[\\s\\S]*?\\bMargin\\s*Requirements\\b\\s*:\\s*([-]?\\d{1,3}(?:[\\s,]?\\d{3})*(?:\\.\\d+)?)`,
+    acSummaryPattern.source + `[\\s\\S]*?\\bMargin\\s*Requirements\\b\\s*:\\s*([-]?\\d{1,3}(?:[\\s,]+\\d{3})*(?:\\.\\d+)?)`,
     'i'
   );
   const match = text.match(pattern);
@@ -68,7 +61,7 @@ const depositWithdrawal = extractNumber('Deposit\/Withdrawal');
 const previousEquity = extractNumber('Previous Equity');
 const equity = extractNumber('Equity');
 const floatingPL = extractNumber('Floating P/L');
-const marginRequirements = extractMarginRequirements(); // 獨立處理
+const marginRequirements = extractMarginRequirements();
 const availableMargin = extractNumber('Available Margin');
 
 // 調試日誌
