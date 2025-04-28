@@ -14,16 +14,22 @@ const date = dateMatch ? dateMatch[1].replace(/\./g, '-') : null;
 const acSummaryPattern = /\*?\s*A\/C\s*SUMMARY:?\s*\*?/i;
 
 const extractNumber = (fieldName) => {
+  // 定義欄位特定的正則表達式模式
   let fieldPattern;
   if (fieldName === 'Balance') {
     fieldPattern = `(?<!Previous\\s+Ledger\\s+)\\bBalance\\b`;
   } else if (fieldName === 'Equity') {
     fieldPattern = `(?<!Previous\\s+)\\bEquity\\b`;
   } else {
-    fieldPattern = `\\b${fieldName}\\b`;
+    // 處理斜線 '/'，並允許靈活的空格
+    const escapedFieldName = fieldName.replace('/', '\\/'); // 轉義斜線
+    fieldPattern = `\\b${escapedFieldName.replace(/\s+/g, '\\s*')}\\b`; // 將空格替換為 \s*
   }
 
+  // 定義通用的數值提取模式，支援負數、千分位分隔符和帶小數的數字
   const numberPattern = `([-]?\\d{1,3}(?:[\\s,]+\\d{3})*(?:\\.\\d+)?)`;
+  
+  // 組合完整的正則表達式模式，從 A/C Summary 區塊開始匹配
   const pattern = new RegExp(
     `${acSummaryPattern.source}[\\s\\S]*?${fieldPattern}\\s*:\\s*${numberPattern}`,
     'i'
@@ -31,9 +37,11 @@ const extractNumber = (fieldName) => {
 
   const match = text.match(pattern);
   if (match) {
+    // 移除數值中的空格和逗號，並轉為浮點數
     const value = match[1].replace(/[,\s]/g, '');
     return parseFloat(value);
   } else {
+    // 調試日誌：顯示未能匹配的欄位
     console.log(`未能匹配欄位: ${fieldName}`);
     return null;
   }
